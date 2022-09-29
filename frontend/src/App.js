@@ -1,78 +1,140 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, createContext, useEffect } from 'react';
 import './App.css';
 
 function Cars() {
-/**
- * Fields required for the car
-      "id",
-      "brand",
-      "name",
-      "releaseYear",
-      "color"
- */
+
+  const Context = createContext([]);
+  const [cars, setCars, refresh, setRefresh]  = useContext(Context);
+
+  useEffect(() => {
+    fetch('http://localhost:8000/list')
+    .then(res => res.json())
+    .then((result) => {
+        setCars(result);
+    });
+  }, [refresh]);
+  
   const carFormInitialData = {
     id: 0,
-    name: ''
+    brand:'',
+    name: '',
+    releaseYear:"",
+    color:""
   }
+
   const [carFormData, setCarFormData] = useState(carFormInitialData);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { brand, name, releaseYear, color, value } = e.target;
     setCarFormData({
       ...carFormData,
       [name]: value,
+      [brand]: value,
+      [releaseYear]: value,
+      [color]: value
     });
   }
 
-  const handleSubmit = (event) => {
-    /**
-     * Gather all the form data to state variable carFormData
-     * When the form is submitted POST the data to Backend using fetch post
-     * https://googlechrome.github.io/samples/fetch-api/fetch-post.html
-     */
-    event.preventDefault();
+  const postHandler = async (event) => {
+    let res = await fetch("http://localhost:8000/save", {
+        method: "POST",
+        body: JSON.stringify({
+          id: event.target.id.value,
+          brand: event.target.brand.value,
+          name: event.target.name.value,
+          releaseYear: event.target.releaseYear.value,
+          color: event.target.color.value
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      }).then(res => setRefresh(!refresh));
   }
 
-  const handleDelete = () => {
-    /**
-     * When clicked on a delete button, get the id of the car's delete button clicked
-     * Then use javascript fetch to send DELETE request to NodeJS
-     * https://openjavascript.info/2022/01/03/using-fetch-to-make-get-post-put-and-delete-requests/
-     */
+  const putHandler = async (event) => {
+    let res = await fetch("http://localhost:8000/edit", {
+        method: "PUT",
+        body: JSON.stringify({
+          id: event.target.id.value,
+          brand: event.target.brand.value,
+          name: event.target.name.value,
+          releaseYear: event.target.releaseYear.value,
+          color: event.target.color.value
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      }).then(res => setRefresh(!refresh));
+  }
+
+  const handleSubmit = (event) => {
+    
+    event.preventDefault();
+    let submit = document.getElementById("submit");
+    
+    if (submit.value === "Update") {
+        putHandler(event);
+    } else {
+        postHandler(event);
+    }
+    event.target.reset();
+  }
+
+  const handleDelete = async (e) => {
+
+     e.preventDefault();
+     let res = await fetch("http://localhost:8000/delete", {
+     method: "DELETE",
+     body: JSON.stringify({
+       id: e.target.parentElement.id
+     }),
+     headers: { 'Content-Type': 'application/json' },
+   }).then(res => setRefresh(!refresh));
+
+    
   }
 
 /** 🥳🥳🥳🥳🥳🥳 DOUBLE BONUS POINTS 🥳🥳🥳🥳🥳🥳 */
-  const handleEdit = () => {
-    /**
-     * When clicked on a edit button figure out a way to edit the car data.
-     * Once edited send the updated data to NodeJS.
-     * Then use javascript fetch to send DELETE request to NodeJS
-     * https://openjavascript.info/2022/01/03/using-fetch-to-make-get-post-put-and-delete-requests/
-     */
+  const handleEdit = async (e) => {
+     e.preventDefault();
+     let id =  document.getElementById("id");
+     let brand = document.getElementById("brand");
+     let name = document.getElementById("name");
+     let releaseYear = document.getElementById("releaseYear");
+     let color = document.getElementById("color")
+     let submit = document.getElementById("submit");
+     submit.value = "Update";
+ 
+     id.value = e.target.parentElement.getAttribute("id");
+     brand.value = e.target.parentElement.getAttribute("brand");
+     name.value = e.target.parentElement.getAttribute("name");
+     releaseYear.value = e.target.parentElement.getAttribute("releaseYear");
+     color.value = e.target.parentElement.getAttribute("color");
   }
  
   return (
     <div className='cars-from-wrapper'>
-      <form id="cars-form" onSubmit={handleSubmit} autoComplete="off">
-        {/** 
-           * TODO: Update the form fields with inputs for 
-           *    ID, Brand, Name, ReleaseYear and Color
-           * Make required changes to  const carFormInitialData
-           * */}  
+      <form id="cars-form" onSubmit={handleSubmit} autoComplete="off"> 
         <label>
           ID:
           <input name='id' type="text" value={carFormData.id} onChange={handleInputChange} />
         </label>
         <label>
+          Brand:
+          <input name='brand' type="text" value={carFormData.brand} onChange={handleInputChange} />
+        </label>
+        <label>
           Name:
           <input name='name' type="text" value={carFormData.name} onChange={handleInputChange} />
         </label>
-        <input type="submit" value="Submit" />
+        <label>
+          Release Year:
+          <input name='releaseYear' type="text" value={carFormData.releaseYear} onChange={handleInputChange} />
+        </label>
+        <label>
+          Color:
+          <input name='color' type="text" value={carFormData.color} onChange={handleInputChange} />
+        </label>
+        <input id = "submit" type="submit" value="Submit" />
       </form>
-       {/** 
-           * TODO: Update the code below to see any new proprties added to carFormData
-           * */}  
-      <p>ID:{carFormData.id}, name:{carFormData.name}</p>
+       
+      <p>ID:{carFormData.id}, Brand:{carFormData.brand}, Name:{carFormData.name}, Release Year:{carFormData.releaseYear}, Color:{carFormData.color}</p>
 
       <h2>Cars Data</h2>
       <table>
@@ -86,53 +148,10 @@ function Cars() {
           </tr>
         </thead>
         <tbody>
-          {/** 
-           * TODO: Replace this code with Data from Node JS GET api data
-           * React documentation: https://reactjs.org/docs/lists-and-keys.html
-           * How to get data from API: https://www.w3schools.com/jsref/api_fetch.asp
-           * */}          
-          <tr>
-            <td>Alfreds Futterkiste</td>
-            <td>Maria Anders</td>
-            <td>Germany</td>
-            <td>✎</td>
-            <td>🗑</td>        
-          </tr>
-          <tr>
-            <td>Centro comercial Moctezuma</td>
-            <td>Francisco Chang</td>
-            <td>Mexico</td>
-            <td>✎</td>
-            <td>🗑</td>
-          </tr>
-          <tr>
-            <td>Ernst Handel</td>
-            <td>Roland Mendel</td>
-            <td>Austria</td>
-            <td>✎</td>
-            <td>🗑</td>
-          </tr>
-          <tr>
-            <td>Island Trading</td>
-            <td>Helen Bennett</td>
-            <td>UK</td>
-            <td>✎</td>
-            <td>🗑</td>
-          </tr>
-          <tr>
-            <td>Laughing Bacchus Winecellars</td>
-            <td>Yoshi Tannamuri</td>
-            <td>Canada</td>
-            <td>✎</td>
-            <td>🗑</td>
-          </tr>
-          <tr>
-            <td>Magazzini Alimentari Riuniti</td>
-            <td>Giovanni Rovelli</td>
-            <td>Italy</td>
-            <td>✎</td>
-            <td>🗑</td>
-          </tr>
+                  
+          {cars.map(function(car){
+            return <tr key={ car.id }><td>{car.id}</td><td>{car.brand}</td><td>{car.name}</td><td>{car.releaseYear}</td><td>{car.color}</td><td id={car.id} brand={car.brand} name={car.name} releaseYear={car.releaseYear} color={car.color}><i onClick={handleDelete} className="bi bi-trash"></i> &nbsp;&nbsp; <i className='bi bi-pencil' onClick={handleEdit}></i></td></tr>;
+          })}
         </tbody>
       </table>
     </div>
